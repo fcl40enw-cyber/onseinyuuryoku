@@ -204,8 +204,39 @@ function checkVoiceCommands(text) {
 // 患者一覧の読み込み
 async function loadPatients() {
     try {
-        const response = await fetch('tables/patients?limit=100');
-        const data = await response.json();
+        // 患者データの読み込み
+function loadPatients() {
+    try {
+        let patients = JSON.parse(localStorage.getItem('patients') || '[]');
+        
+        // デフォルトの患者データがない場合は追加
+        if (patients.length === 0) {
+            patients = [
+                { id: 1, name: '山田太郎', age: 75, diagnosis: '高血圧、糖尿病' },
+                { id: 2, name: '佐藤花子', age: 82, diagnosis: '認知症' },
+                { id: 3, name: '鈴木一郎', age: 68, diagnosis: '脳梗塞後遺症' }
+            ];
+            localStorage.setItem('patients', JSON.stringify(patients));
+        }
+        
+        const patientSelect = document.getElementById('patientSelect');
+        patientSelect.innerHTML = '<option value="">患者を選択してください</option>';
+        
+        patients.forEach(patient => {
+            const option = document.createElement('option');
+            option.value = patient.id;
+            option.textContent = `${patient.name} (${patient.age}歳)`;
+            option.dataset.diagnosis = patient.diagnosis;
+            patientSelect.appendChild(option);
+        });
+        
+        return patients;
+    } catch (error) {
+        console.error('患者データの読み込みエラー:', error);
+        return [];
+    }
+}
+
         patients = data.data || [];
         
         // セレクトボックスに追加
@@ -481,8 +512,151 @@ async function autoSelectOrCreatePatient(name, patientId, crosslogId) {
 // テンプレート一覧の読み込み
 async function loadTemplates() {
     try {
-        const response = await fetch('tables/templates?limit=100');
-        const data = await response.json();
+        // テンプレートデータの読み込み
+function loadTemplates() {
+    try {
+        let templates = JSON.parse(localStorage.getItem('templates') || '[]');
+        
+        // デフォルトのテンプレートがない場合は追加
+        if (templates.length === 0) {
+            templates = [
+                {
+                    id: 1,
+                    title: '基本的な訪問記録',
+                    content: `【訪問日時】
+{visit_date}
+
+【主訴】
+{chief_complaint}
+
+【バイタルサイン】
+血圧: {blood_pressure}
+脈拍: {pulse}
+体温: {temperature}
+SpO2: {spo2}
+
+【所見】
+{findings}
+
+【処置・指導内容】
+{treatment}
+
+【次回訪問予定】
+{next_visit}`
+                },
+                {
+                    id: 2,
+                    title: '服薬管理記録',
+                    content: `【訪問日時】
+{visit_date}
+
+【服薬状況確認】
+{medication_status}
+
+【残薬確認】
+{remaining_medication}
+
+【服薬指導内容】
+{medication_guidance}
+
+【副作用の有無】
+{side_effects}
+
+【特記事項】
+{notes}`
+                },
+                {
+                    id: 3,
+                    title: '褥瘡管理記録',
+                    content: `【訪問日時】
+{visit_date}
+
+【褥瘡部位】
+{pressure_ulcer_location}
+
+【褥瘡の状態】
+サイズ: {size}
+深さ: {depth}
+浸出液: {exudate}
+肉芽: {granulation}
+
+【処置内容】
+{treatment}
+
+【今後の方針】
+{plan}`
+                }
+            ];
+            localStorage.setItem('templates', JSON.stringify(templates));
+        }
+        
+        const templateSelect = document.getElementById('templateSelect');
+        templateSelect.innerHTML = '<option value="">テンプレートを選択（任意）</option>';
+        
+        templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.title;
+            templateSelect.appendChild(option);
+        });
+        
+        // テンプレート一覧も更新
+        updateTemplateList(templates);
+        
+        return templates;
+    } catch (error) {
+        console.error('テンプレートの読み込みエラー:', error);
+        return [];
+    }
+}
+
+// テンプレート一覧の表示を更新
+function updateTemplateList(templates) {
+    const templateList = document.getElementById('templateList');
+    if (!templateList) return;
+    
+    if (templates.length === 0) {
+        templateList.innerHTML = '<p class="text-gray-500 text-center py-8">登録されているテンプレートはありません</p>';
+        return;
+    }
+    
+    templateList.innerHTML = templates.map(template => `
+        <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition">
+            <div class="flex justify-between items-start mb-2">
+                <h4 class="font-semibold text-gray-900">${template.title}</h4>
+                <button class="delete-template text-red-600 hover:text-red-800" data-id="${template.id}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <pre class="text-sm text-gray-600 bg-gray-50 p-3 rounded overflow-x-auto whitespace-pre-wrap">${template.content}</pre>
+        </div>
+    `).join('');
+    
+    // 削除ボタンのイベントリスナーを追加
+    document.querySelectorAll('.delete-template').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(e.currentTarget.dataset.id);
+            deleteTemplate(id);
+        });
+    });
+}
+
+// テンプレート削除機能
+function deleteTemplate(id) {
+    if (!confirm('このテンプレートを削除しますか？')) return;
+    
+    try {
+        let templates = JSON.parse(localStorage.getItem('templates') || '[]');
+        templates = templates.filter(t => t.id !== id);
+        localStorage.setItem('templates', JSON.stringify(templates));
+        loadTemplates();
+        showToast('テンプレートを削除しました', 'success');
+    } catch (error) {
+        console.error('テンプレート削除エラー:', error);
+        showToast('テンプレートの削除に失敗しました', 'error');
+    }
+}
+
         templates = data.data || [];
         
         // セレクトボックスに追加
@@ -650,3 +824,67 @@ function formatWithTemplate(transcriptText) {
 // グローバル関数として公開
 window.deleteRecord = deleteRecord;
 window.deleteTemplate = deleteTemplate;
+
+// テンプレート保存ボタンのイベントリスナー
+document.getElementById('saveTemplateBtn').addEventListener('click', () => {
+    const title = document.getElementById('templateTitle').value.trim();
+    const content = document.getElementById('templateContent').value.trim();
+    
+    if (!title || !content) {
+        showToast('タイトルと内容を入力してください', 'error');
+        return;
+    }
+    
+    try {
+        const templates = JSON.parse(localStorage.getItem('templates') || '[]');
+        const newTemplate = {
+            id: Date.now(),
+            title: title,
+            content: content
+        };
+        
+        templates.push(newTemplate);
+        localStorage.setItem('templates', JSON.stringify(templates));
+        
+        // フォームをクリア
+        document.getElementById('templateTitle').value = '';
+        document.getElementById('templateContent').value = '';
+        
+        // テンプレートリストを再読み込み
+        loadTemplates();
+        
+        showToast('テンプレートを保存しました', 'success');
+    } catch (error) {
+        console.error('テンプレート保存エラー:', error);
+        showToast('テンプレートの保存に失敗しました', 'error');
+    }
+
+});
+
+// ページ読み込み時の初期化
+document.addEventListener('DOMContentLoaded', () => {
+    loadPatients();
+    loadTemplates();
+    loadHistory();
+});
+// トースト通知表示
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    toastMessage.textContent = message;
+    
+    if (type === 'error') {
+        toast.classList.remove('bg-green-600');
+        toast.classList.add('bg-red-600');
+    } else {
+        toast.classList.remove('bg-red-600');
+        toast.classList.add('bg-green-600');
+    }
+    
+    toast.style.transform = 'translateX(0)';
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(200%)';
+    }, 3000);
+}
